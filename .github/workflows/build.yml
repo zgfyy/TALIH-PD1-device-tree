@@ -1,4 +1,4 @@
-name: Build TWRP for TALIH-PD1
+name: Build TWRP (AOSP) for TALIH-PD1
 
 on:
   push:
@@ -8,46 +8,50 @@ on:
 
 jobs:
   build:
-    name: Build TWRP (AOSP)
     runs-on: ubuntu-20.04
+
     env:
       DEVICE: TALIH-PD1
-      TARGET: recovery
-      THREADS: 4
+      TARGET: twrp
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      # 1️⃣ Checkout repository
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        sudo dpkg --add-architecture i386
-        sudo apt-get update
-        sudo apt-get install -y \
-          bc bison build-essential curl flex g++-multilib gcc-multilib git gnupg gperf \
-          libncurses5-dev:i386 libstdc++6:i386 zlib1g:i386 libssl-dev python3 unzip xz-utils zip
+      # 2️⃣ Set up dependencies
+      - name: Install dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache curl flex \
+            g++-multilib gcc-multilib git gnupg gperf \
+            lib32z1-dev lib32ncurses6-dev liblz4-tool \
+            libncurses5 libncurses5-dev libsdl1.2-dev \
+            libssl-dev libxml2 libxml2-utils lzop \
+            openjdk-11-jdk pngcrush rsync schedtool \
+            squashfs-tools xsltproc zip zlib1g-dev repo
 
-    - name: Setup environment
-      run: |
-        mkdir -p ~/twrp
-        export PATH=$HOME/bin:$PATH
-        export ANDROID_BUILD_TOP=$PWD
+      # 3️⃣ Initialize environment (optional, if needed)
+      - name: Source environment
+        run: |
+          echo "Set up build environment"
+          source build/envsetup.sh || true
 
-    - name: Initialize repo (if using AOSP manifests)
-      run: |
-        # 如果你有 TWRP/AOSP manifest，可以在这里初始化
-        # repo init -u https://github.com/LineageOS/android.git -b twrp-11.0
-        # repo sync -c --no-tags --no-clone-bundle -j$THREADS
-        echo "Skip repo init, using local device tree"
+      # 4️⃣ Lunch device
+      - name: Lunch device
+        run: |
+          lunch ${DEVICE}-${TARGET}-eng || true
 
-    - name: Build recovery
-      run: |
-        source build/envsetup.sh
-        lunch omni_$DEVICE-$TARGET
-        make -j$THREADS recoveryimage
+      # 5️⃣ Start build
+      - name: Build TWRP
+        run: |
+          make -j$(nproc) recoveryimage
 
-    - name: Upload recovery image
-      uses: actions/upload-artifact@v4
-      with:
-        name: recovery-image
-        path: out/target/product/$DEVICE/recovery.img
+      # 6️⃣ Upload artifact
+      - name: Upload TWRP image
+        uses: actions/upload-artifact@v4
+        with:
+          name: TWRP-${DEVICE}
+          path: out/target/product/${DEVICE}/recovery.img

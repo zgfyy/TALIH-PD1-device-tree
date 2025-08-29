@@ -1,0 +1,24 @@
+# TWRP Board Config for tb8788p1_64_wifi
+
+TARGET_DEVICE := tb8788p1_64_wifi
+TARGET_RECOVERY_UI := twrp
+BOARD_HAVE_DTBO_IMAGE := true
+BOARD_BOOTIMAGE_HEADER_VERSION := 2
+BOARD_USE_RECOVERY_AS_BOOT := false
+BOARD_HAS_NO_REAL_SDCARD := true
+
+# Kernel & dtbo
+BOARD_KERNEL_CMDLINE := console=ttyS0,921600n1 root=/dev/ram androidboot.slot_suffix=_a androidboot.verifiedbootstate=orange
+BOARD_KERNEL_BASE := 0x80080000
+BOARD_PAGE_SIZE := 4096
+BOARD_KERNEL_HEADERS := prebuilt
+BOARD_KERNEL_DTB := dtb/dtbo.img
+
+# FBE
+BOARD_HAS_FILE_BASED_ENCRYPTION := true
+BOARD_CRYPTO_TYPE := file
+
+# Screen
+BOARD_SCREEN_WIDTH := 1600
+BOARD_SCREEN_HEIGHT := 2176
+BOARD_SCREEN_DENSITY := 320

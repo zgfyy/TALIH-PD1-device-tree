@@ -1,0 +1,14 @@
+# TWRP recovery fstab for tb8788p1_64_wifi
+
+/dev/block/sdc47  /super          ext4    wait,slotselect,display=Super
+/dev/block/sdc48  /data           f2fs    wait,encryptable=footer
+/dev/block/sdc28  /boot           emmc    defaults
+/dev/block/sdc30  /dtbo           emmc    defaults
+/dev/block/sdc29  /vendor_boot     emmc    defaults
+/dev/block/sdc16  /vbmeta_a       emmc    defaults
+/dev/block/sdc17  /vbmeta_system_a emmc   defaults
+/dev/block/sdc18  /vbmeta_vendor_a emmc   defaults
+/dev/block/sdc43  /boot_b         emmc    defaults
+/dev/block/sdc45  /dtbo_b         emmc    defaults
+/dev/block/sdc44  /vendor_boot_b   emmc   defaults
+/dev/block/sdc32  /vbmeta_b       emmc    defaults

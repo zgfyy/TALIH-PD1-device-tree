@@ -8,50 +8,52 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    name: Build TWRP
+    runs-on: ubuntu-latest
 
     env:
-      DEVICE: TALIH-PD1
-      TARGET: twrp
+      TZ: "Asia/Shanghai"
+      DEVICE: tb8788p1_64_wifi
+      OUTDIR: ${{ github.workspace }}/out
 
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout device tree
+      uses: actions/checkout@v3
+      with:
+        submodules: true
 
-      # 2️⃣ Set up dependencies
-      - name: Install dependencies
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y \
-            bc bison build-essential ccache curl flex \
-            g++-multilib gcc-multilib git gnupg gperf \
-            lib32z1-dev lib32ncurses6-dev liblz4-tool \
-            libncurses5 libncurses5-dev libsdl1.2-dev \
-            libssl-dev libxml2 libxml2-utils lzop \
-            openjdk-11-jdk pngcrush rsync schedtool \
-            squashfs-tools xsltproc zip zlib1g-dev repo
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          bc bison build-essential curl flex g++-multilib gcc-multilib git gnupg gperf \
+          libncurses5-dev:i386 libstdc++6:i386 zlib1g:i386 libssl-dev python3 unzip xz-utils zip
 
-      # 3️⃣ Initialize environment (optional, if needed)
-      - name: Source environment
-        run: |
-          echo "Set up build environment"
-          source build/envsetup.sh || true
+    - name: Setup repo (AOSP TWRP)
+      run: |
+        mkdir -p ~/android/twrp
+        cd ~/android/twrp
+        repo init -u https://github.com/TeamWin/android_bootable_recovery.git -b twrp-12.1
+        repo sync -c -j8 --no-clone-bundle --no-tags
 
-      # 4️⃣ Lunch device
-      - name: Lunch device
-        run: |
-          lunch ${DEVICE}-${TARGET}-eng || true
+    - name: Copy device tree
+      run: |
+        mkdir -p ~/android/twrp/device/alps/$DEVICE
+        cp -r $GITHUB_WORKSPACE/* ~/android/twrp/device/alps/$DEVICE/
 
-      # 5️⃣ Start build
-      - name: Build TWRP
-        run: |
-          make -j$(nproc) recoveryimage
+    - name: Setup environment
+      run: |
+        cd ~/android/twrp
+        source build/envsetup.sh
+        lunch omni_$DEVICE-eng
 
-      # 6️⃣ Upload artifact
-      - name: Upload TWRP image
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWRP-${DEVICE}
-          path: out/target/product/${DEVICE}/recovery.img
+    - name: Build TWRP recovery
+      run: |
+        cd ~/android/twrp
+        mka recoveryimage -j$(nproc)
+
+    - name: Upload recovery image
+      uses: actions/upload-artifact@v4
+      with:
+        name: twrp_recovery
+        path: ~/android/twrp/out/target/product/$DEVICE/recovery.img

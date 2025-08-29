@@ -15,53 +15,61 @@ jobs:
       TZ: "Asia/Shanghai"
       DEVICE: tb8788p1_64_wifi
       OUTDIR: ${{ github.workspace }}/out
-      PATH: ${{ github.workspace }}/bin:$PATH
 
     steps:
-    - name: Checkout device tree
-      uses: actions/checkout@v3
-      with:
-        submodules: true
-
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           bc bison build-essential curl flex g++-multilib gcc-multilib git gnupg gperf \
-          libncurses5-dev libstdc++6 zlib1g libssl-dev python3 unzip xz-utils zip wget
+          libncurses5-dev libstdc++6 zlib1g libssl-dev python3 unzip xz-utils zip
+
+    - name: Checkout device tree with submodules
+      uses: actions/checkout@v3
+      with:
+        repository: zgfyy/TALIH-PD1-device-tree
+        token: ${{ secrets.GITHUB_TOKEN }}
+        submodules: true
+        ssh-strict: true
+        persist-credentials: true
+        clean: true
+        fetch-depth: 1
+        fetch-tags: false
+        lfs: false
+        set-safe-directory: true
 
     - name: Install repo tool
       run: |
-        mkdir -p ${{ github.workspace }}/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo -o ${{ github.workspace }}/bin/repo
-        chmod a+x ${{ github.workspace }}/bin/repo
+        mkdir -p ~/bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+        echo 'export PATH=$HOME/bin:$PATH' >> $GITHUB_ENV
 
     - name: Setup repo (AOSP TWRP)
       run: |
-        mkdir -p $HOME/android/twrp
-        cd $HOME/android/twrp
-        repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-        # 仅同步必要 repo，减少空间占用
-        repo sync -c -j4 --no-clone-bundle --no-tags
+        mkdir -p ~/android/twrp
+        cd ~/android/twrp
+        repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+        repo sync -c -j8 --no-clone-bundle --no-tags
 
     - name: Copy device tree
       run: |
-        mkdir -p $HOME/android/twrp/device/alps/$DEVICE
-        cp -r $GITHUB_WORKSPACE/* $HOME/android/twrp/device/alps/$DEVICE/
+        mkdir -p ~/android/twrp/device/alps/$DEVICE
+        cp -r $GITHUB_WORKSPACE/* ~/android/twrp/device/alps/$DEVICE/
 
     - name: Setup environment
       run: |
-        cd $HOME/android/twrp
+        cd ~/android/twrp
         source build/envsetup.sh
         lunch omni_$DEVICE-eng
 
     - name: Build TWRP recovery
       run: |
-        cd $HOME/android/twrp
+        cd ~/android/twrp
         mka recoveryimage -j$(nproc)
 
     - name: Upload recovery image
       uses: actions/upload-artifact@v4
       with:
         name: twrp_recovery
-        path: $HOME/android/twrp/out/target/product/$DEVICE/recovery.img
+        path: ~/android/twrp/out/target/product/$DEVICE/recovery.img

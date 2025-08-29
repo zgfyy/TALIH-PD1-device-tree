@@ -15,30 +15,28 @@ jobs:
       TZ: "Asia/Shanghai"
       DEVICE: tb8788p1_64_wifi
       OUTDIR: ${{ github.workspace }}/out
-      PATH: ${{ github.workspace }}/bin:$PATH
 
     steps:
-    - name: Checkout device tree
-      uses: actions/checkout@v3
-      with:
-        repository: zgfyy/TALIH-PD1-device-tree
-        token: ${{ secrets.GITHUB_TOKEN }}
-        ssh-strict: true
-        persist-credentials: true
-        clean: true
-        fetch-depth: 1
-
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          bc bison build-essential curl flex g++-multilib gcc-multilib git gnupg gperf \
+          git bc bison build-essential curl flex g++-multilib gcc-multilib gnupg gperf \
           libncurses5-dev libstdc++6 zlib1g libssl-dev python3 unzip xz-utils zip
+
+    - name: Checkout device tree using local Git
+      uses: actions/checkout@v3
+      with:
+        repository: zgfyy/TALIH-PD1-device-tree
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        clean: true
+        submodules: true
 
     - name: Install repo tool
       run: |
         mkdir -p ~/bin
-        curl -s https://storage.googleapis.com/git-repo-downloads/repo -o ~/bin/repo
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         echo 'export PATH=$HOME/bin:$PATH' >> $GITHUB_ENV
 
@@ -47,8 +45,7 @@ jobs:
         mkdir -p ~/android/twrp
         cd ~/android/twrp
         repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
-        # 精简同步，浅克隆，节省空间
-        repo sync -c -j8 --depth=1 --no-clone-bundle --no-tags
+        repo sync -c -j8 --no-clone-bundle --no-tags
 
     - name: Copy device tree
       run: |
